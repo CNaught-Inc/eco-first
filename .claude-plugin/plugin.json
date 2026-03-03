@@ -1,0 +1,13 @@
+{
+  "name": "eco-first",
+  "displayName": "eco-first",
+  "description": "Sustainability-first design for Claude Code. Audit code for environmental impact and get eco-friendly recommendations during planning.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jacob Model"
+  },
+  "license": "MIT",
+  "keywords": ["sustainability", "green-software", "carbon", "eco-friendly", "environment"],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
