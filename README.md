@@ -28,9 +28,27 @@ git clone https://github.com/CNaught-Inc/eco-first.git ~/.claude/plugins/eco-fir
 - [AWS Well-Architected Sustainability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/sustainability-pillar.html)
 - [Web Almanac 2024](https://almanac.httparchive.org/)
 
-## Design
+## File Structure
 
-See the [design doc](docs/plans/2026-03-01-eco-first-design.md) for architecture decisions and rationale.
+```
+eco-first/
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── eco-review/
+│   │   └── SKILL.md          (audit process, 20 patterns, carbon table)
+│   └── eco-design/
+│       └── SKILL.md          (planning checklist, carbon table)
+├── commands/
+│   ├── eco-review.md
+│   ├── eco-design.md
+│   └── eco-refresh.md
+├── tests/
+│   ├── test-scenario-review.md
+│   └── test-scenario-design.md
+├── README.md
+└── LICENSE
+```
 
 ## License
 
