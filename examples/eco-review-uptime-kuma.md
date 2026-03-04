@@ -26,12 +26,12 @@
 **Effort:** Moderate — requires data aggregation logic and migration
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 3. C2: Uncompressed API payloads (partial)
+### 3. C2: Uncompressed text resources (partial)
 
 **Found in:** `server/server.js`, `package.json`
-**Details:** The `compression` npm package is installed and used as Express middleware, providing gzip compression. However, Brotli compression is not configured. Brotli achieves 15-25% better compression than gzip for text-based responses.
+**Details:** The `compression` npm package is installed and used as Express middleware, providing gzip compression for all text responses (HTML, CSS, JS, JSON). However, Brotli compression is not configured. Brotli achieves 15-25% better compression than gzip for text-based responses.
 
-**Impact:** 15-25% additional payload size reduction for dashboard API responses and static assets
+**Impact:** 15-25% additional payload size reduction for dashboard responses, HTML pages, and static assets. ~30% of websites serve uncompressed text resources.
 **Effort:** Quick fix — add `shrink-ray-current` or configure Vite to emit pre-compressed Brotli assets
 **Source:** Web Almanac 2024, HTTP Archive (https://almanac.httparchive.org/)
 

@@ -110,7 +110,51 @@ The defaults are reasonable — n8n is ahead of many projects here. Improvements
 
 ---
 
-### 6. Queue Architecture — What n8n Gets Right
+### 6. Data Access Patterns
+
+**What n8n chose:**
+- TypeORM as the ORM with PostgreSQL (or SQLite)
+- Workflow listings load workflows, then lazy-load tags, shared users, and execution counts
+- Execution history lazy-loads node execution data per-execution
+- Admin views load credentials and workspaces per-user
+
+**Eco-first alternative:**
+TypeORM's lazy relations are a classic N+1 source. The eco-first version would:
+
+1. **Use eager loading (`relations`)** for all list endpoints — workflow list, execution list, user list
+2. **Use `QueryBuilder` with `leftJoinAndSelect`** for complex queries that need selective loading
+3. **Enable query logging in development** to detect N+1 patterns: `logging: ["query"]` in TypeORM config
+4. **Add database query count assertions in tests** — verify that list endpoints execute a bounded number of queries
+
+**Impact:** 80% faster at scale. For an instance with 100+ workflows, eager loading reduces query count from hundreds to single digits.
+
+*Reference: A5 — PlanetScale blog; Azure Well-Architected Framework*
+
+---
+
+### 7. Production Logging and Observability
+
+**What n8n chose:**
+- Full input/output data stored for every node execution by default
+- `EXECUTIONS_DATA_SAVE_ON_SUCCESS` defaults to saving all data
+- Execution data includes JSON payloads at every step of every workflow
+- 14-day retention (good), but volume during that window is massive
+
+**Eco-first alternative:**
+Debug-level logging (or its equivalent — storing every intermediate payload) produces 10-100x the volume of summary logging. The eco-first version would:
+
+1. **Default to metadata-only on success** — store execution status, duration, and error info, but not full payloads for successful runs
+2. **Opt-in per-workflow for full logging** — let users enable full payload logging only on workflows they're debugging
+3. **Structured log levels** — expose `N8N_LOG_LEVEL` with sane defaults (WARN for production, INFO for development)
+4. **Log retention tiers** — full data for 24 hours, metadata only for 14 days
+
+**Impact:** 30-50% reduction in observability storage costs. 80%+ reduction in execution data volume for successful runs.
+
+*Reference: A6 — ClickHouse blog; Logz.io*
+
+---
+
+### 8. Queue Architecture — What n8n Gets Right
 
 **What n8n chose:**
 - **BullMQ** + Redis for job queuing in production
@@ -137,6 +181,8 @@ Well-designed. BullMQ is efficient, Redis is lightweight, and the separation of 
 | Docker image | 400-500 MB with extras | <200 MB slim variant | 50%+ smaller |
 | Execution retention | 14 days full data (good defaults) | Tiered: full → metadata → delete | 70-80% less DB storage |
 | Frontend bundle | 8 GB build, all node UIs loaded | Lazy-loaded node UIs | Dramatically smaller bundle |
+| Data access | TypeORM lazy-loading (N+1) | Eager loading with `relations` | 80% faster list views |
+| Production logging | Full payloads stored by default | Metadata-only on success, opt-in full | 80%+ less execution storage |
 | Queue system | BullMQ + Redis (well-designed) | Same, add auto-scale signals | Workers scale to zero |
 
 ### What n8n Gets Right

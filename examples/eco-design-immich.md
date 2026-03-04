@@ -93,7 +93,31 @@ Most users scroll past 80%+ of their photos without clicking. Lazy preview gener
 
 ---
 
-### 5. Video Transcoding
+### 5. Processor Architecture
+
+**What Immich chose:**
+- Server container runs on `node:22-bookworm-slim` — x86_64 by default
+- ML container built for 6 architectures including ARM NN and RKNN (ARM support exists but isn't the default)
+- Docker Compose defaults to the platform's native architecture
+
+**Eco-first alternative:**
+ARM-based processors use up to 60% less energy per core. Immich is well-positioned for ARM since:
+- Node.js has full ARM64 support
+- ONNX Runtime supports ARM64 (and ARM NN for acceleration)
+- PostgreSQL with pgvecto.rs works on ARM64
+
+The eco-first version would:
+1. **Default documentation to ARM** for self-hosters on cloud instances — recommend AWS Graviton, Azure Cobalt, or GCP Axion
+2. **Publish ARM64 as the recommended tag** on Docker Hub (currently available but not promoted)
+3. **Test ARM NN as default ML backend** on ARM platforms — it's already supported but not the default
+
+**Impact:** Up to 60% less energy per core. 20-40% cost savings. For an always-on service with 4 containers, this compounds significantly.
+
+*Reference: I7 — ARM Newsroom; AWS Graviton documentation*
+
+---
+
+### 6. Video Transcoding and Delivery
 
 **What Immich chose:**
 - Full video transcoding for web compatibility (h264 default, also hevc, vp9, av1)
@@ -107,13 +131,13 @@ Most users scroll past 80%+ of their photos without clicking. Lazy preview gener
 3. **Default to hardware acceleration** — detect available GPU/NPU on startup and auto-enable. CPU transcoding uses 10-50x more energy per video-minute than GPU.
 4. **AV1 as default output** — AV1 is 30-50% smaller than h264 at equivalent quality. Encoding is slower but the storage and transfer savings compound over time.
 
-**Impact:** Skipping transcoding for compatible formats eliminates the most wasteful processing. GPU encoding uses 10-50x less energy than CPU.
+**Impact:** Skipping transcoding for compatible formats eliminates the most wasteful processing. GPU encoding uses 10-50x less energy than CPU. GIF→MP4 conversion yields 94-95% file size reduction for animated content.
 
-*Reference: I3 — AWS Well-Architected Sustainability Pillar*
+*Reference: I3 — AWS Well-Architected Sustainability Pillar; C10 — Web Almanac 2024; The Shift Project*
 
 ---
 
-### 6. Frontend — What Immich Gets Right
+### 7. Frontend — What Immich Gets Right
 
 **What Immich chose:**
 - **SvelteKit** — compiles away the framework runtime (smaller than React/Vue)
@@ -143,6 +167,7 @@ If building a self-hosted photo manager from scratch with sustainability as a de
 | Storage lifecycle | Originals forever, no tiering | Tiered: hot → warm → cold over time | 30-50% less storage long-term |
 | Duplicate handling | Suggest, require manual review | Auto-resolve exact hash matches | Immediate storage savings |
 | Video transcoding | Eager, CPU default | On-demand, GPU default, skip compatible | 10-50x less energy per video |
+| Processor architecture | x86_64 default | ARM64 recommended for cloud | Up to 60% less energy per core |
 | Docker footprint | 4+ GB across 4 containers | 3 containers, <2 GB total | 50%+ smaller |
 | Default ML model | buffalo_l (large) | buffalo_s (small) | Faster, less memory |
 

@@ -62,6 +62,15 @@
 **Effort:** Moderate — the split-mode compose already exists; make it the documented default
 **Source:** AWS Well-Architected Sustainability Pillar
 
+### 7. A5: N+1 database queries
+
+**Found in:** Prisma ORM usage in NestJS backend
+**Details:** Hoppscotch uses Prisma ORM with PostgreSQL. Prisma does not support automatic eager loading — related records (team members, collections within a team, environments per workspace) require explicit `include` statements. Without careful attention, listing endpoints that return nested data (teams with members, collections with requests) produce N+1 query patterns.
+
+**Impact:** 80% faster at 1000 records with eager loading vs N+1. Reduces database round-trips from N+1 to 2 for nested data.
+**Effort:** Quick fix to Moderate — add `include` clauses to Prisma queries for endpoints that return related data
+**Source:** PlanetScale blog (https://planetscale.com/); Azure Well-Architected Framework (https://learn.microsoft.com/en-us/azure/well-architected/)
+
 ---
 
 ## Category Summary
@@ -91,6 +100,7 @@
 - ✓ Redis Pub/Sub for real-time (efficient pattern)
 - ⚠ Self-hosted has no CDN layer — see #4
 - ⚠ AIO container bundles unused services — see #6
+- ⚠ Prisma ORM queries may produce N+1 patterns for nested data — see #7
 - No issues found: Tauri desktop app (Rust) is lightweight compared to Electron
 
 ---

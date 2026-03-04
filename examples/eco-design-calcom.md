@@ -136,7 +136,48 @@ Path filtering and Turborepo caching are already in place (credit where due). Th
 
 ---
 
-### 7. Data Retention
+### 7. Third-Party Scripts on Booking Pages
+
+**What Cal.com chose:**
+- Booking pages can embed analytics (Google Analytics, Plausible, etc.) via the admin panel
+- Cal.com's own telemetry collects usage data unless disabled
+- Embed mode allows Cal.com widgets on third-party sites, pulling in the full scheduling UI as a third-party resource
+- No documented performance budget or third-party script audit
+
+**Eco-first alternative:**
+94% of mobile pages load third-party resources, and on media sites up to 70% of page electricity goes to ads and trackers. For booking pages — which should be fast and lightweight — the eco-first version would:
+
+1. **Ship zero third-party scripts by default** — booking pages should be self-contained. Let admins opt into analytics, not opt out.
+2. **Facade pattern for embeds** — when embedded on a third-party site, show a static booking preview and only load the full scheduling UI on click.
+3. **Set a performance budget** — cap third-party script weight at 50 KB for booking pages. Audit with `bundlewatch` or Lighthouse CI.
+
+**Impact:** Eliminating unnecessary third-party scripts from booking pages reduces page weight, execution energy, and load time. Facade embeds prevent loading the full Cal.com UI until a visitor actually wants to book.
+
+*Reference: C8 — Web Almanac 2024; The Shift Project*
+
+---
+
+### 8. Data Access Patterns
+
+**What Cal.com chose:**
+- Prisma ORM with PostgreSQL
+- Complex nested queries for bookings (attendees, payment, references, calendar credentials)
+- Event type listings load availability rules, team members, webhooks, and workflows per event type
+
+**Eco-first alternative:**
+Prisma does not support automatic eager loading — every related record requires an explicit `include`. Without careful attention, listing endpoints generate N+1 query patterns. The eco-first version would:
+
+1. **Audit all Prisma queries for N+1** — especially booking list, event type list, and team member views
+2. **Use `select` to fetch only needed fields** — Prisma's default fetches all columns. Selecting only required fields reduces data transfer.
+3. **Add query logging in development** — enable Prisma's `log: ['query']` to detect N+1 patterns early
+
+**Impact:** 80% faster at scale with eager loading. Reduces database round-trips from N+1 to 2 for nested data like bookings with attendees.
+
+*Reference: A5 — PlanetScale blog; Azure Well-Architected Framework*
+
+---
+
+### 9. Data Retention
 
 **What Cal.com chose:**
 - Booking records retained **indefinitely** — no archival or deletion
@@ -168,6 +209,8 @@ If building an open-source scheduling platform from scratch with sustainability 
 | Static assets (self-hosted) | Origin-only, no CDN config | CDN-ready with `assetPrefix` | 90%+ cache hit rate |
 | Cron execution | Dual-region (fires twice) | Single-region for background work | 50% less cron compute |
 | CI workflows | 59 workflows including 10 crons | Cloud scheduler for crons, consolidated CI | 20-60% less CI compute |
+| Third-party scripts | Analytics opt-out, full embed load | Zero third-party default, facade embeds | Lighter booking pages |
+| Data access | Prisma without eager loading audit | Explicit includes, select-only fields | 80% faster nested queries |
 | Data retention | Indefinite, no deletion | Configurable TTLs, archival tiers | Bounded storage growth |
 | Cloud regions | Vercel (AWS default regions) | Prefer low-carbon regions | 2-10x carbon reduction |
 

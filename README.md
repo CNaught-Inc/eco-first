@@ -27,6 +27,8 @@ git clone https://github.com/CNaught-Inc/eco-first.git ~/.claude/plugins/eco-fir
 - [GSF Green Software Patterns](https://patterns.greensoftware.foundation/)
 - [AWS Well-Architected Sustainability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/sustainability-pillar.html)
 - [Web Almanac 2024](https://almanac.httparchive.org/)
+- [The Shift Project](https://theshiftproject.org/)
+- [PlanetScale](https://planetscale.com/)
 
 ## File Structure
 
@@ -36,7 +38,7 @@ eco-first/
 │   └── plugin.json
 ├── skills/
 │   ├── eco-review/
-│   │   └── SKILL.md          (audit process, 20 patterns, carbon table)
+│   │   └── SKILL.md          (audit process, 27 patterns, carbon table)
 │   └── eco-design/
 │       └── SKILL.md          (planning checklist, carbon table)
 ├── commands/

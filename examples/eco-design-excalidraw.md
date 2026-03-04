@@ -67,7 +67,28 @@ The PNG metadata round-trip is clever, but the eco-first version would offer: "E
 
 ---
 
-### 4. Static Asset Delivery
+### 4. Font Loading and Subsetting
+
+**What Excalidraw chose:**
+- Multiple custom font families: Virgil (hand-drawn), Cascadia Code, CJK hand-drawn variants
+- All fonts loaded at application startup regardless of document content
+- Fonts served from esm.run CDN (good delivery)
+- No subsetting — full Unicode ranges loaded for each font
+
+**Eco-first alternative:**
+83% of websites use custom fonts, and subsetting yields 88-99% file size reduction. The eco-first version would:
+
+1. **Subset to Latin by default** — the Virgil and Cascadia fonts only need Latin + common symbols for the majority of users. Subset to `unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F`.
+2. **Lazy-load CJK fonts** — detect when CJK characters are typed or pasted into the canvas, then load the CJK font variant on demand. This saves 1-5 MB for users who never use CJK.
+3. **Self-host subsetted fonts** — instead of loading from esm.run, bundle subsetted woff2 files for maximum control and cache efficiency.
+
+**Impact:** 88-99% file size reduction from subsetting. Most users would save 1-5 MB on initial load by deferring CJK.
+
+*Reference: C9 — Paul Calvano, Web Font optimization 2024; Web Almanac 2024*
+
+---
+
+### 5. Static Asset Delivery
 
 **What Excalidraw chose:**
 - Hosted on **Vercel** (edge deployment — good for latency)
@@ -85,7 +106,7 @@ For fonts, the CDN approach is correct. The improvement: **serve only the fonts 
 
 ---
 
-### 5. Data Storage Architecture
+### 6. Data Storage Architecture
 
 **What Excalidraw chose:**
 - **Local-first:** localStorage + IndexedDB for solo use (no server needed — excellent)
@@ -105,7 +126,7 @@ The local-first architecture is the best possible sustainability choice for solo
 
 ---
 
-### 6. Background Features
+### 7. Background Features
 
 **What Excalidraw chose:**
 - PWA service worker precaches 2+ MiB of assets for offline use
@@ -125,7 +146,7 @@ The PWA precaching is a double-edged sword: great for repeat visitors (assets se
 
 ---
 
-### 7. CI/CD Pipeline
+### 8. CI/CD Pipeline
 
 **What Excalidraw chose:**
 - GitHub Actions for CI
@@ -157,7 +178,8 @@ If building a collaborative whiteboard from scratch with sustainability as a des
 | Image export | PNG only (raster) | WebP default, PNG for round-trip | 25-35% smaller exports |
 | Local storage | localStorage + IndexedDB | IndexedDB only | Eliminates redundancy |
 | Cloud data lifecycle | Indefinite | TTLs for abandoned rooms | Prevents unbounded growth |
-| Fonts | All loaded at start | On-demand per document needs | Saves CJK font download (~1-5 MB) |
+| Font subsetting | Full Unicode ranges loaded | Latin subset + on-demand CJK | 88-99% font file size reduction |
+| Font delivery | All loaded at start | On-demand per document needs | Saves CJK font download (~1-5 MB) |
 | CI | Full rebuild on every change | Path filtering + caching | 20-60% less CI compute |
 
 ### What Excalidraw Gets Right

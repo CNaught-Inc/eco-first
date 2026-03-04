@@ -48,12 +48,12 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Quick fix — improve default cache headers for the tracker script
 **Source:** Web Almanac 2024, HTTP Archive
 
-### 5. C2: Uncompressed API payloads (partial)
+### 5. C2: Uncompressed text resources (partial)
 
 **Found in:** Phoenix endpoint configuration
-**Details:** Gzip pre-compression exists for static assets (via `mix phx.digest`), but no Brotli support. Dashboard API responses rely on nginx reverse proxy for compression — no application-level compression middleware. The tracking API itself has tiny payloads (~200 bytes) where this is negligible.
+**Details:** Gzip pre-compression exists for static assets (via `mix phx.digest`), but no Brotli support. Dashboard API responses and HTML pages rely on nginx reverse proxy for compression — no application-level compression middleware. The tracking API itself has tiny payloads (~200 bytes) where this is negligible.
 
-**Impact:** 15-25% additional compression for dashboard responses with Brotli. Minimal impact on tracking API.
+**Impact:** 15-25% additional compression for dashboard responses and HTML with Brotli. ~30% of websites serve uncompressed text resources. Minimal impact on tracking API.
 **Effort:** Quick fix — add `Plug.Compress` to the endpoint or Brotli pre-compression to `phx.digest`
 **Source:** Web Almanac 2024, HTTP Archive (https://almanac.httparchive.org/)
 
