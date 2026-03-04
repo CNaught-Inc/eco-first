@@ -2,6 +2,16 @@
 
 > **Reference project:** [immich-app/immich](https://github.com/immich-app/immich) (~60k stars)
 > **Premise:** You're building a similar self-hosted Google Photos alternative — photo/video backup, AI-powered search, face recognition, and a web + mobile interface.
+>
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **I3:** Always-on ML container idles most of the day — batch processing + scale-to-zero (architectural)
+2. **C4:** 1440px preview generated eagerly for every upload — lazy-generate on first view (moderate)
+3. **P3:** Originals stored forever with no tiering — add cold storage + auto-resolve duplicates (moderate)
 
 ---
 
@@ -61,12 +71,15 @@ Most users scroll past 80%+ of their photos without clicking. Lazy preview gener
 - Duplicate detection suggests duplicates but doesn't auto-resolve them
 
 **Eco-first alternative:**
-1. **Tiered storage** — after 1 year, offer to compress originals to 80% quality JPEG/HEIF (user opt-in). A 10 MB photo at 80% quality is ~3-4 MB with negligible visual difference.
+
+> ⚠ **Product trade-off:** Lossy compression of originals contradicts Immich's core promise of preserving photos exactly as uploaded. Recommend cold storage tiering and auto-dedup only. Keep the lossy compression idea as user-opt-in with strong warnings, not as a default recommendation.
+
+1. **Cold storage tier** — move originals older than 2 years to a cheaper/lower-energy storage backend (S3 Glacier, local cold disk). Preserves originals at full quality.
 2. **Auto-resolve exact duplicates** — file-hash matches are definitively duplicates. Auto-delete with a 30-day undo window instead of requiring manual review.
-3. **Cold storage tier** — move originals older than 2 years to a cheaper/lower-energy storage backend (S3 Glacier, local cold disk).
+3. **Optional lossy compression (user opt-in only)** — after 1 year, offer to compress originals to 80% quality JPEG/HEIF. Must be explicitly enabled by the user with clear warnings that originals will be permanently altered.
 4. **Global deduplication** — currently per-library only. Cross-library dedup would catch duplicates from shared albums.
 
-**Impact:** Tiered storage could reduce total storage by 30-50% for mature libraries. Auto-dedup prevents the most obvious waste.
+**Impact:** Cold storage + auto-dedup could reduce total storage by 30-50% for mature libraries without altering originals.
 
 *Reference: P3 — AWS Well-Architected Sustainability Pillar; A4 — Industry consensus*
 
@@ -83,11 +96,10 @@ Most users scroll past 80%+ of their photos without clicking. Lazy preview gener
 
 **Eco-first alternative:**
 1. **Alpine for the server** — `bookworm-slim` is decent but Alpine would be smaller. The FFmpeg + libvips dependencies are the bulk.
-2. **Single-binary ML service** — rewrite the ML service in a compiled language (Rust/Go with ONNX bindings) to eliminate the Python runtime overhead. Or use `onnxruntime-web` in the Node.js server to consolidate to one container.
+2. **Consolidate ML into the Node.js server** — use `onnxruntime-node` for CPU inference, reducing container count from 4 to 3 without a rewrite. This eliminates the Python runtime overhead while staying in the existing tech stack.
 3. **Build only the variants users request** — don't build 6 ML variants × 2 architectures = 12 images on every release. Use a matrix strategy that only builds requested targets.
-4. **Consolidate containers** — the server already runs the worker in-process. Adding ML inference (for CPU mode) would reduce to 3 containers.
 
-**Impact:** 50-90% reduction in image sizes. Fewer containers = less orchestration overhead and idle memory.
+**Impact:** 50-90% reduction in image sizes. Consolidating to 3 containers reduces orchestration overhead and idle memory.
 
 *Reference: I2 — Docker best practices (https://docs.docker.com/build/building/best-practices/)*
 
@@ -159,17 +171,20 @@ This is one of the best frontend implementations from a sustainability perspecti
 
 If building a self-hosted photo manager from scratch with sustainability as a design constraint:
 
+### Quick Wins
+| Decision | Immich's Choice | Eco-First Choice | Difference |
+|----------|----------------|-----------------|------------|
+| Thumbnails | 3 sizes generated eagerly | Small + thumbhash only; lazy preview | 40% less per-upload processing |
+| Frontend | No low-data mode | Low-data mode skipping preview step | Less data on mobile |
+| Processor architecture | x86_64 default | ARM64 recommended for cloud | Up to 60% less energy per core |
+
+### Architectural Considerations
 | Decision | Immich's Choice | Eco-First Choice | Difference |
 |----------|----------------|-----------------|------------|
 | ML processing | Always-on container, per-photo | Scale-to-zero, batched processing | Eliminates idle compute |
-| Thumbnails | 3 sizes generated eagerly | Small + thumbhash only; lazy preview | 40% less per-upload processing |
-| Preview format | JPEG (1440px) | WebP (1440px) | 25-35% smaller previews |
-| Storage lifecycle | Originals forever, no tiering | Tiered: hot → warm → cold over time | 30-50% less storage long-term |
-| Duplicate handling | Suggest, require manual review | Auto-resolve exact hash matches | Immediate storage savings |
-| Video transcoding | Eager, CPU default | On-demand, GPU default, skip compatible | 10-50x less energy per video |
-| Processor architecture | x86_64 default | ARM64 recommended for cloud | Up to 60% less energy per core |
+| Storage lifecycle | Originals forever, no tiering | Cold storage + auto-dedup | 30-50% less storage long-term |
 | Docker footprint | 4+ GB across 4 containers | 3 containers, <2 GB total | 50%+ smaller |
-| Default ML model | buffalo_l (large) | buffalo_s (small) | Faster, less memory |
+| Video transcoding | Eager, CPU default | On-demand, GPU default, skip compatible | 10-50x less energy per video |
 
 ### What Immich Gets Right
 

@@ -4,11 +4,21 @@
 > **What it is:** Browser-based collaborative whiteboard. Hand-drawn style diagrams, real-time multiplayer, export to PNG/SVG, embeddable React component.
 > **Stack:** React, Vite/Rollup, Socket.IO, Firebase (Firestore + Storage), TypeScript, Yarn workspaces
 
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **I1:** Firebase likely on us-central1 (413 gCO2/kWh) — move to europe-west6 or northam-northeast1 (architectural)
+2. **C9:** Full CJK font families loaded for all users — subset to Latin, lazy-load CJK on demand (moderate)
+3. **C5:** 2+ MiB initial JS bundle — lazy-load Mermaid, image processing, and CJK fonts (moderate)
+
 ---
 
 ## Top Recommendations
 
-### 1. I1: High-carbon cloud region
+### 1. I1: High-carbon cloud region — Medium
 
 **Found in:** Firebase configuration (collaboration backend)
 **Details:** Excalidraw uses Firebase Firestore for persistent scene storage and Firebase Storage for binary files (images). Firebase defaults to `us-central1` (Iowa, **413 gCO2/kWh** — "High Carbon" tier). No evidence of region-specific Firebase configuration in public source or docs.
@@ -17,7 +27,7 @@
 **Effort:** Architectural — requires Firestore migration, latency testing for global users
 **Source:** Google Cloud Region Carbon Data, 2024 (https://cloud.google.com/sustainability/region-carbon)
 
-### 2. C5: Large frontend bundles
+### 2. C5: Large frontend bundles — Medium
 
 **Found in:** `excalidraw-app/vite.config.mts`, PWA service worker config
 **Details:** The main JS bundle exceeds **2 MiB**, confirmed by the Workbox precache limit (`maximumFileSizeToCacheInBytes` had to be increased). The bundle ships all features upfront including:
@@ -29,7 +39,7 @@
 **Effort:** Moderate — dynamic imports for Mermaid converter, image processing libs, and CJK fonts
 **Source:** webpack/Vite documentation; Web Almanac 2024
 
-### 3. C4: Unoptimized images (export)
+### 3. C4: Unoptimized images (export) — Medium
 
 **Found in:** Export functionality (`@excalidraw/utils`)
 **Details:** Raster export only supports **PNG** format. No WebP or AVIF export option. The PNG export embeds scene metadata as tEXt chunks for round-trip reimport, which adds payload. For a tool that exports millions of drawings, this is significant cumulative waste.
@@ -38,7 +48,7 @@
 **Effort:** Moderate — add WebP export option alongside PNG. Keep PNG for round-trip reimport use case.
 **Source:** Google Developers Web Fundamentals; Web Almanac 2024
 
-### 4. A4: Redundant data storage
+### 4. A4: Redundant data storage — Low
 
 **Found in:** `LocalData` class, browser storage layer
 **Details:** Excalidraw stores scene data in **both localStorage and IndexedDB** simultaneously. localStorage has a known 5 MB limit (Issue #8395) and the data is duplicated in IndexedDB. Binary files and library items go to IndexedDB via `LibraryIndexedDBAdapter`, but scene data exists in both stores.
@@ -47,7 +57,7 @@
 **Effort:** Moderate — migrate fully to IndexedDB (Issue #1280 already proposed this)
 **Source:** Industry consensus
 
-### 5. I4/I6: CI pipeline efficiency (unconfirmed)
+### 5. I4/I6: CI pipeline efficiency (unverified) — Medium
 
 **Found in:** `.github/workflows/`, monorepo build configuration
 **Details:** The monorepo has a strict sequential build chain: `common → math → element → excalidraw`. Could not confirm whether `actions/cache` is used for `node_modules`/Yarn cache, or whether path-based filtering skips builds for docs-only changes. The sequential build means even a trivial change may trigger a full rebuild of all 4 packages.
@@ -56,7 +66,7 @@
 **Effort:** Quick fix — add `paths:` filters and `actions/cache` for Yarn store
 **Source:** GitHub Actions caching docs; industry consensus
 
-### 6. C9: Unsubsetted web fonts
+### 6. C9: Unsubsetted web fonts — High
 
 **Found in:** Font loading at initialization, Virgil/Cascadia/CJK font families
 **Details:** Excalidraw loads multiple custom font families (Virgil hand-drawn, Cascadia Code, and CJK variants) at application startup. The CJK hand-drawn font is especially large (1-5 MB) and is loaded for all users regardless of whether their document uses CJK characters. Fonts are served from esm.run CDN (good delivery), but are not subsetted to required character ranges.
@@ -65,7 +75,7 @@
 **Effort:** Moderate — subset Latin-only versions for default load, lazy-load CJK variants when CJK characters are detected in the document
 **Source:** Paul Calvano, Web Font optimization 2024; Web Almanac 2024, HTTP Archive (https://almanac.httparchive.org/)
 
-### 7. P4: Always-on background features
+### 7. P4: Always-on background features — Low
 
 **Found in:** PWA service worker, Socket.IO reconnection
 **Details:** The PWA service worker precaches **2+ MiB** of assets on first visit, regardless of whether the user will return. Auto-reconnection via Socket.IO runs continuously during collaboration sessions with no user control. No "lite mode" or option to disable background sync for battery-conscious mobile users.
@@ -82,7 +92,7 @@
 - ✓ Multi-stage Docker builds for self-hosting (good base image practices)
 - ✓ Hosted on Vercel (edge deployment with automatic CDN)
 - ⚠ Firebase likely on us-central1 (413 gCO2/kWh) — see #1
-- ⚠ CI path filtering and caching unconfirmed — see #5
+- ⚠ CI path filtering and caching unverified — see #5
 
 ### Code
 - ✓ **WebSockets via Socket.IO** for real-time collaboration (not polling)

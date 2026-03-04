@@ -2,6 +2,16 @@
 
 > **Reference project:** [excalidraw/excalidraw](https://github.com/excalidraw/excalidraw) (~90k stars)
 > **Premise:** You're building a similar collaborative drawing tool — a browser-based whiteboard with real-time multiplayer, export to PNG/SVG, and an embeddable React component.
+>
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **C9:** Full CJK fonts loaded for all users — subset to Latin, lazy-load CJK on demand (moderate)
+2. **C5:** 2+ MiB initial JS bundle — lazy-load Mermaid, image processing, CJK fonts (moderate)
+3. **I1:** Firebase likely on us-central1 (413 gCO2/kWh) — choose a green region (architectural)
 
 ---
 
@@ -136,8 +146,10 @@ The local-first architecture is the best possible sustainability choice for solo
 **Eco-first alternative:**
 The PWA precaching is a double-edged sword: great for repeat visitors (assets served from cache), wasteful for one-time visitors (2+ MiB cached and never used again). The eco-first version would:
 
+> ⚠ **Product trade-off:** Disabling the service worker removes offline support — a core differentiator. Only recommend selective caching (reduce precache scope), not full opt-out.
+
 1. **Cache selectively** — precache only the core drawing engine on install. Load collaboration, export, and library features on-demand.
-2. **Add a "lite mode"** — users on mobile or low-bandwidth connections can opt out of the service worker entirely.
+2. **Add a "lite mode"** — users on mobile or low-bandwidth connections can reduce the precache scope to the core drawing engine only.
 3. **User control over sync** — let users pause auto-save during battery-critical situations (pattern P4).
 
 **Impact:** Device-level energy savings. Background activity is a top battery drain on mobile.
@@ -170,17 +182,21 @@ The sequential build chain means a docs-only change may trigger a full rebuild o
 
 If building a collaborative whiteboard from scratch with sustainability as a design constraint:
 
+### Quick Wins
 | Decision | Excalidraw's Choice | Eco-First Choice | Difference |
 |----------|-------------------|-----------------|------------|
-| Real-time protocol | Socket.IO (WebSocket) | Same | No change needed |
-| Cloud persistence | Firebase (us-central1 default) | Firebase in europe-west6 or northam-northeast1 | 27-83x lower carbon intensity |
 | Bundle size | 2+ MiB initial load | <500 KB core + lazy loading | 60-75% smaller first load |
 | Image export | PNG only (raster) | WebP default, PNG for round-trip | 25-35% smaller exports |
-| Local storage | localStorage + IndexedDB | IndexedDB only | Eliminates redundancy |
-| Cloud data lifecycle | Indefinite | TTLs for abandoned rooms | Prevents unbounded growth |
 | Font subsetting | Full Unicode ranges loaded | Latin subset + on-demand CJK | 88-99% font file size reduction |
 | Font delivery | All loaded at start | On-demand per document needs | Saves CJK font download (~1-5 MB) |
 | CI | Full rebuild on every change | Path filtering + caching | 20-60% less CI compute |
+| Local storage | localStorage + IndexedDB | IndexedDB only | Eliminates redundancy |
+
+### Architectural Considerations
+| Decision | Excalidraw's Choice | Eco-First Choice | Difference |
+|----------|-------------------|-----------------|------------|
+| Cloud persistence | Firebase (us-central1 default) | Firebase in europe-west6 or northam-northeast1 | 27-83x lower carbon intensity |
+| Background features | PWA precaches 2+ MiB for all visitors | Selective precaching, core-only on install | Device-level energy savings |
 
 ### What Excalidraw Gets Right
 

@@ -4,11 +4,21 @@
 > **What it is:** Privacy-focused, self-hostable web analytics. Alternative to Google Analytics.
 > **Stack:** Elixir, Phoenix, ClickHouse, PostgreSQL, esbuild, Tailwind CSS
 
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **P3:** No data retention — unbounded ClickHouse growth — add TTL-based retention (moderate)
+2. **I1:** No green-region guidance for self-hosters — add region recommendations to docs (quick fix)
+3. **I3:** Three always-on containers for bursty workloads — document lightweight alternatives (architectural)
+
 ---
 
 ## Top Recommendations
 
-### 1. P3: No data retention policy
+### 1. P3: No data retention policy — Medium
 
 **Found in:** ClickHouse event storage, `config/runtime.exs`
 **Details:** Plausible has no built-in data retention or TTL feature. Analytics data is retained indefinitely by default. Self-hosted users must manually apply ClickHouse TTL directives:
@@ -21,7 +31,7 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Moderate — requires policy decisions, migration tooling, and UI for configuration
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 2. I1: High-carbon cloud region (deployment guidance)
+### 2. I1: High-carbon cloud region (deployment guidance) — Medium
 
 **Found in:** `docker-compose.yml` (in plausible/community-edition), deployment docs
 **Details:** No cloud region guidance exists for self-hosted deployments. The DigitalOcean tutorial says "launch in the region of your choice" with no sustainability considerations. The hosted plausible.io service does not publish its region choices.
@@ -30,7 +40,7 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Quick fix for docs — add a recommendation to choose low-carbon regions
 **Source:** Google Cloud Region Carbon Data, 2024 (https://cloud.google.com/sustainability/region-carbon)
 
-### 3. I3: Always-on compute for bursty workloads
+### 3. I3: Always-on compute for bursty workloads — Medium
 
 **Found in:** `docker-compose.yml`
 **Details:** The default deployment runs three always-on containers (Plausible app, PostgreSQL, ClickHouse) with `restart: always`. For low-traffic sites (personal blogs, small projects), this is significant over-provisioning — three services running 24/7 to serve a few hundred page views per day.
@@ -39,7 +49,7 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Architectural — could document lightweight alternatives or single-binary mode for small sites
 **Source:** NRDC Data Center Efficiency Assessment, 2014; AWS Well-Architected Sustainability Pillar
 
-### 4. C3: Missing cache-control headers (partial)
+### 4. C3: Tracker script missing long-lived cache headers — High
 
 **Found in:** Phoenix endpoint configuration, nginx proxy setup
 **Details:** Digested (fingerprinted) static assets get good caching via Phoenix's `cache_static_manifest`. However, the tracker script (`/js/script.js`) — the most frequently requested file across all visitor browsers — has historically had weak caching defaults. Self-hosted instances need manual nginx config (`proxy_cache_valid 200 6h`) to cache it properly.
@@ -48,7 +58,7 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Quick fix — improve default cache headers for the tracker script
 **Source:** Web Almanac 2024, HTTP Archive
 
-### 5. C2: Uncompressed text resources (partial)
+### 5. C2: No Brotli compression for dashboard responses — High
 
 **Found in:** Phoenix endpoint configuration
 **Details:** Gzip pre-compression exists for static assets (via `mix phx.digest`), but no Brotli support. Dashboard API responses and HTML pages rely on nginx reverse proxy for compression — no application-level compression middleware. The tracking API itself has tiny payloads (~200 bytes) where this is negligible.
@@ -57,7 +67,7 @@ The community has been requesting this since 2021 (discussions #1354, #1436, #19
 **Effort:** Quick fix — add `Plug.Compress` to the endpoint or Brotli pre-compression to `phx.digest`
 **Source:** Web Almanac 2024, HTTP Archive (https://almanac.httparchive.org/)
 
-### 6. A2: No CDN for static assets (self-hosted)
+### 6. A2: No CDN for static assets (self-hosted) — High
 
 **Found in:** Self-hosted deployment configuration
 **Details:** The hosted plausible.io service uses a worldwide CDN. Self-hosted deployments serve everything from origin — every visitor worldwide hits the origin server for the tracker script. The tracker is available via jsDelivr as an npm package, but this isn't documented as a recommended setup.

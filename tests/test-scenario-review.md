@@ -74,33 +74,47 @@ app.get('/api/messages/check', (req, res) => {
 
 ### Patterns That Should Fire
 
-| Pattern | Found In | Why |
-|---------|----------|-----|
-| I1: High-carbon cloud region | terraform/main.tf | us-east-1 = 323 gCO2/kWh |
-| I2: Oversized container images | Dockerfile | FROM ubuntu:22.04 with build tools |
-| I5: Over-provisioned compute | terraform/main.tf | m5.2xlarge for a web server |
-| C1: Polling instead of event-driven | server.js | Three endpoints polled via setInterval |
-| C2: Uncompressed API payloads | server.js | No compression middleware |
-| C3: Missing cache-control headers | server.js | express.static with no cache config |
-| C4: Unoptimized images | public/index.html | PNG, no lazy loading, no srcset |
-| P1: Real-time-only sync | Product design | WebSocket notifications, no digest option |
-| P2: Infinite scroll without limits | Product design | /feed infinite scroll |
+| Pattern | Severity | Found In | Why |
+|---------|----------|----------|-----|
+| I1: High-carbon cloud region | Medium | terraform/main.tf | us-east-1 = 323 gCO2/kWh |
+| I2: Oversized container images | Medium | Dockerfile | FROM ubuntu:22.04 with build tools |
+| I5: Over-provisioned compute | Medium | terraform/main.tf | m5.2xlarge for a web server |
+| I7: x86 instances when ARM is viable | Medium | terraform/main.tf | m5.2xlarge is x86; Node.js runs on ARM/Graviton |
+| C1: Polling instead of event-driven | Medium | server.js | Three endpoints polled via setInterval |
+| C2: Uncompressed text resources | High | server.js | No compression middleware |
+| C3: Missing cache-control headers | High | server.js | express.static with no cache config |
+| C4: Unoptimized images | Medium | public/index.html | PNG, no lazy loading, no srcset |
+| A2: No CDN for static assets | High | server.js | express.static('public') serving from origin, no CDN config |
+| P1: Real-time-only sync | Low | Product design | WebSocket notifications, no digest option |
+| P2: Infinite scroll without limits | Medium | Product design | /feed infinite scroll |
+
+### Expected TL;DR (top 3 by impact)
+
+1. **I1:** High-carbon region (us-east-1, 323 gCO2/kWh) — migrate to us-west-2 or ca-central-1 (architectural)
+2. **I2:** Full OS container image — switch to alpine/distroless (moderate)
+3. **C1:** Polling 3 endpoints every 3 seconds — use SSE or WebSockets (moderate)
 
 ### Expected Order (by impact, highest first)
 
-1. **I1** — 2-10x reduction (region migration)
-2. **I2** — 50-90% image size reduction
-3. **C1** — eliminates 720 wasted requests/hour/client (x3 endpoints)
-4. **C2** — 60-80% payload reduction
-5. **C4** — 25-50% image file size reduction
-6. **I5** — linear reduction (right-sizing)
-7. **C3** — eliminates redundant transfer for repeat visitors
-8. **P1** — scales with user count
-9. **P2** — prevents speculative loading
+1. **I1** — 2-10x reduction (region migration) [Medium]
+2. **I2** — 50-90% image size reduction [Medium]
+3. **C1** — eliminates 720 wasted requests/hour/client (x3 endpoints) [Medium]
+4. **A2** — CDN hit rates 90%+, reduces origin load and network transit [High]
+5. **C2** — 60-80% payload reduction [High]
+6. **C4** — 25-50% image file size reduction [Medium]
+7. **I7** — up to 60% less energy per core (ARM migration) [Medium]
+8. **I5** — linear reduction (right-sizing) [Medium]
+9. **C3** — eliminates redundant transfer for repeat visitors [High]
+10. **P1** — scales with user count [Low]
+11. **P2** — prevents speculative loading [Medium]
 
 ### Category Summary Should Contain
 
-- **Infrastructure:** ⚠ I1, ⚠ I2, ⚠ I5 (no ✓ items — nothing good found)
+- **Infrastructure:** ⚠ I1, ⚠ I2, ⚠ I5, ⚠ I7 (no ✓ items — nothing good found)
 - **Code:** ⚠ C1, ⚠ C2, ⚠ C3, ⚠ C4
 - **Product Design:** ⚠ P1, ⚠ P2
-- **Architecture:** no issues identified (no cron jobs, no redundant storage visible)
+- **Architecture:** ⚠ A2 (express.static serving from origin, no CDN)
+
+### Suppression Behavior
+
+If `.eco-ignore` contains `I1`, then I1 should appear in Suppressed Patterns, not in recommendations.

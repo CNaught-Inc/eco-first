@@ -2,6 +2,16 @@
 
 > **Reference project:** [n8n-io/n8n](https://github.com/n8n-io/n8n) (~55k stars)
 > **Premise:** You're building a similar visual workflow automation tool — a node-based editor, 400+ integrations, webhook/polling/cron triggers, and self-hostable deployment.
+>
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **A6:** Full execution payloads stored for every successful run — metadata-only on success (quick fix)
+2. **C1:** Polling triggers at fixed 1-min intervals — exponential backoff + webhook preference (moderate)
+3. **I3:** Always-on compute with no scale-to-zero — separate trigger layer from execution (architectural)
 
 ---
 
@@ -18,10 +28,12 @@
 **Eco-first alternative:**
 This is the hardest problem and the biggest sustainability gap. A true eco-first workflow platform would:
 
+> ⚠ **Product trade-off:** n8n's value proposition is "always ready to catch a webhook." Hibernation adds latency to the first trigger after idle, which may violate reliability guarantees users depend on.
+
 1. **Separate the trigger layer from the execution layer** — a lightweight "trigger receiver" (serverless function or edge worker) accepts webhooks and writes to a queue. The execution engine scales from zero only when there's work.
 2. **Replace polling triggers with push adapters** — for services without webhooks, run a shared polling service that checks multiple accounts/integrations in one process, not one n8n instance per user.
 3. **Defer cron triggers to a cloud scheduler** — AWS EventBridge, GCP Cloud Scheduler, or Cloudflare Cron Triggers can fire webhooks at scheduled times without a persistent process.
-4. **Hibernate between executions** — checkpoint the engine state to disk, shut down after 5 minutes idle, restore on next trigger.
+4. **Hibernate between executions (most aggressive option)** — checkpoint the engine state to disk, shut down after 5 minutes idle, restore on next trigger. This maximizes savings but introduces cold-start latency on the first trigger after idle.
 
 **Impact:** Eliminates idle compute. A workflow that runs once per day wastes 23 hours and 59 minutes of always-on server time.
 
@@ -173,17 +185,21 @@ Well-designed. BullMQ is efficient, Redis is lightweight, and the separation of 
 
 ## Summary: Eco-First Workflow Automation Architecture
 
+### Quick Wins
+| Decision | n8n's Choice | Eco-First Choice | Difference |
+|----------|-------------|-----------------|------------|
+| Production logging | Full payloads stored by default | Metadata-only on success, opt-in full | 80%+ less execution storage |
+| Docker image | 400-500 MB with extras | <200 MB slim variant | 50%+ smaller |
+| Queue system | BullMQ + Redis (well-designed) | Same, add `/metrics` for auto-scaling | Workers scale to zero |
+
+### Architectural Considerations
 | Decision | n8n's Choice | Eco-First Choice | Difference |
 |----------|-------------|-----------------|------------|
 | Compute model | Always-on 24/7 | Trigger receiver + scale-to-zero execution | Eliminates 23+ hrs idle compute |
 | Polling triggers | Fixed-interval per-workflow | Exponential backoff + webhook preference | 50-80% fewer API calls |
 | Integration bundle | All 400+ in every deployment | Selective loading, plugin marketplace | 30-50% smaller image/bundle |
-| Docker image | 400-500 MB with extras | <200 MB slim variant | 50%+ smaller |
-| Execution retention | 14 days full data (good defaults) | Tiered: full → metadata → delete | 70-80% less DB storage |
-| Frontend bundle | 8 GB build, all node UIs loaded | Lazy-loaded node UIs | Dramatically smaller bundle |
 | Data access | TypeORM lazy-loading (N+1) | Eager loading with `relations` | 80% faster list views |
-| Production logging | Full payloads stored by default | Metadata-only on success, opt-in full | 80%+ less execution storage |
-| Queue system | BullMQ + Redis (well-designed) | Same, add auto-scale signals | Workers scale to zero |
+| Execution retention | 14 days full data (good defaults) | Tiered: full → metadata → delete | 70-80% less DB storage |
 
 ### What n8n Gets Right
 

@@ -9,7 +9,7 @@ Walk through sustainability considerations for an architecture or feature being 
 
 ## Process
 
-1. **Read project context** — the design doc, plan, or conversation so far
+1. **Read project context** — the design doc, plan, or conversation so far. Check for `.eco-ignore` in the project root; skip any decision points whose pattern ID is listed there.
 2. **Identify decision points** — which items from the checklist below are relevant to this design
 3. **Present recommendations** — for each relevant decision point, present the eco-first alternative with its rationale and citation
 4. **Discuss with developer** — ask whether they want to adopt each recommendation; accept pushback on compliance, latency, or cost constraints
@@ -20,7 +20,7 @@ Walk through sustainability considerations for an architecture or feature being 
 ### Infrastructure Decisions
 
 **Region selection**
-If the design specifies a cloud region, look it up in the carbon intensity table below. If it's in the "High Carbon" tier, suggest a lower-carbon alternative in the same provider with comparable latency.
+If the design specifies a cloud region, look it up in `data/carbon-intensity.md`. If it's in the "High Carbon" tier, suggest a lower-carbon alternative in the same provider with comparable latency.
 *Technical risk: Data residency/compliance violations, migration downtime, cross-region replication complexity.*
 *Usability risk: Higher latency for users near original region.*
 *Reference: I1 — Google Cloud Region Carbon Data, 2024*
@@ -150,48 +150,9 @@ If the design includes logging or monitoring, check log levels and retention pol
 
 ---
 
-## Carbon Intensity by Cloud Region (gCO2eq/kWh, annual average)
+## Carbon Intensity by Cloud Region
 
-### Lowest Carbon (Green Zones — prefer these)
-
-| Location | Grid gCO2/kWh | AWS | GCP | Azure |
-|----------|--------------|-----|-----|-------|
-| Stockholm, Sweden | 3 | eu-north-1 | europe-north2 | Sweden Central |
-| Montréal, Canada | 5 | ca-central-1 | northam-northeast1 | Canada Central |
-| Zürich, Switzerland | 15 | — | europe-west6 | Switzerland North |
-| Paris, France | 16 | eu-west-3 | europe-west9 | France Central |
-| Finland | 39 | — | europe-north1 | — |
-| Toronto, Canada | 59 | — | northam-northeast2 | Canada East |
-| São Paulo, Brazil | 67 | sa-east-1 | southam-east1 | Brazil South |
-| Oregon, US | 79 | us-west-2 | us-west1 | West US 2 |
-
-### Moderate Carbon
-
-| Location | Grid gCO2/kWh | AWS | GCP | Azure |
-|----------|--------------|-----|-----|-------|
-| Madrid, Spain | 89 | — | europe-southwest1 | — |
-| Belgium | 103 | — | europe-west1 | — |
-| London, UK | 106 | eu-west-2 | europe-west2 | UK South |
-| Los Angeles, US | 169 | — | us-west2 | West US |
-| Ireland | 279 | eu-west-1 | — | North Europe |
-| Frankfurt, Germany | 276 | eu-central-1 | europe-west3 | Germany West Central |
-
-### High Carbon (Consider alternatives)
-
-| Location | Grid gCO2/kWh | AWS | GCP | Azure |
-|----------|--------------|-----|-----|-------|
-| N. Virginia, US | 323 | us-east-1 | us-east4 | East US |
-| Iowa, US | 413 | — | us-central1 | — |
-| Tokyo, Japan | 453 | ap-northeast-1 | asia-northeast1 | Japan East |
-| Sydney, Australia | 498 | ap-southeast-2 | australia-southeast1 | Australia East |
-| Hong Kong | 505 | — | asia-east2 | — |
-| S. Carolina, US | 576 | — | us-east1 | — |
-| Mumbai, India | 679 | ap-south-1 | asia-south1 | Central India |
-
-Source: Google Cloud Region Carbon Data, 2024
-(https://cloud.google.com/sustainability/region-carbon)
-Grid intensity = local grid average, not provider-specific.
-Providers may purchase renewable energy credits — this table reflects grid reality.
+Read `data/carbon-intensity.md` from the eco-first plugin directory.
 
 ---
 
@@ -226,4 +187,7 @@ Based on the current design, here are eco-first considerations:
 - Present recommendations conversationally, not as a wall of text
 - Accept pushback gracefully — note compliance, latency, and cost constraints
 - Always surface both risks when presenting a recommendation — this builds trust and helps developers make informed trade-offs
+- When a recommendation conflicts with a product's core value proposition, flag it explicitly:
+  "⚠ **Product trade-off:** This trades [core feature] for [sustainability gain]. Only viable if [condition]."
+- Separate quick wins from architectural changes — help the developer distinguish sprint-sized work from roadmap items
 - Keep it concise — this adds to an existing planning flow, not a standalone session

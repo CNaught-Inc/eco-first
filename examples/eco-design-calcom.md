@@ -2,6 +2,16 @@
 
 > **Reference project:** [calcom/cal.com](https://github.com/calcom/cal.com) (~35k stars)
 > **Premise:** You're building a similar open-source scheduling platform — booking pages, calendar integrations, reminders via email/SMS, webhooks, and a self-hostable Docker deployment.
+>
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **A3:** GitHub Actions cron = ~3,500 daily VM spin-ups — replace with event-driven queue (architectural)
+2. **C4:** Next.js image optimization explicitly disabled — remove `unoptimized: true` (quick fix)
+3. **I2:** Docker image ~5 GB — Alpine base + build optimization, target <500 MB (moderate)
 
 ---
 
@@ -201,16 +211,21 @@ Prisma does not support automatic eager loading — every related record require
 
 If building an open-source scheduling platform from scratch with sustainability as a design constraint:
 
+### Quick Wins
+| Decision | Cal.com's Choice | Eco-First Choice | Difference |
+|----------|-----------------|-----------------|------------|
+| Image optimization | Disabled (`unoptimized: true`) | Next.js built-in WebP/AVIF | 25-50% smaller images |
+| Static assets (self-hosted) | Origin-only, no CDN config | CDN-ready with `assetPrefix` | 90%+ cache hit rate |
+| Third-party scripts | Analytics opt-out, full embed load | Zero third-party default, facade embeds | Lighter booking pages |
+| Data access | Prisma without eager loading audit | Explicit includes, select-only fields | 80% faster nested queries |
+
+### Architectural Considerations
 | Decision | Cal.com's Choice | Eco-First Choice | Difference |
 |----------|-----------------|-----------------|------------|
 | Background jobs | GitHub Actions cron (VM per invocation) | Event-driven queue (Bull/BullMQ) | Eliminates ~3,500 daily VM spin-ups |
 | Docker image | 5 GB (node:20 full Debian) | <500 MB (node:20-alpine, optimized build) | 90% smaller image |
-| Image optimization | Disabled (`unoptimized: true`) | Next.js built-in WebP/AVIF | 25-50% smaller images |
-| Static assets (self-hosted) | Origin-only, no CDN config | CDN-ready with `assetPrefix` | 90%+ cache hit rate |
 | Cron execution | Dual-region (fires twice) | Single-region for background work | 50% less cron compute |
 | CI workflows | 59 workflows including 10 crons | Cloud scheduler for crons, consolidated CI | 20-60% less CI compute |
-| Third-party scripts | Analytics opt-out, full embed load | Zero third-party default, facade embeds | Lighter booking pages |
-| Data access | Prisma without eager loading audit | Explicit includes, select-only fields | 80% faster nested queries |
 | Data retention | Indefinite, no deletion | Configurable TTLs, archival tiers | Bounded storage growth |
 | Cloud regions | Vercel (AWS default regions) | Prefer low-carbon regions | 2-10x carbon reduction |
 

@@ -4,11 +4,21 @@
 > **What it is:** Open-source API development platform. Test REST, GraphQL, WebSocket, SSE, MQTT APIs. Self-hostable with real-time collaboration.
 > **Stack:** Vue 3, Vite, NestJS, GraphQL (Apollo), PostgreSQL, Redis, Caddy, Tauri (desktop)
 
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **I6:** Full CI on every PR in a 10+ package monorepo — add path-based filtering (quick fix)
+2. **I4:** No dependency caching in CI — add pnpm store caching (quick fix)
+3. **A5:** Prisma ORM without eager loading audit — add `include` for nested data endpoints (moderate)
+
 ---
 
 ## Top Recommendations
 
-### 1. I6: Redundant CI runs
+### 1. I6: Redundant CI runs — High
 
 **Found in:** `.github/workflows/`
 **Details:** A 10+ package pnpm monorepo with no evidence of path-based workflow filtering. Every PR triggers full CI across all packages regardless of which one changed. A docs-only change rebuilds the backend, frontend, admin dashboard, CLI, and desktop app.
@@ -17,7 +27,7 @@
 **Effort:** Quick fix — add `paths:` filters to workflow triggers, or use `dorny/paths-filter` action
 **Source:** Industry consensus; GitLab CI rules documentation
 
-### 2. I4: No build caching in CI/CD
+### 2. I4: No build caching in CI/CD — High
 
 **Found in:** `.github/workflows/tests.yml`
 **Details:** No evidence of `actions/cache` for the pnpm store or build artifacts. No incremental build tool (Turbo, Nx) configured. pnpm's content-addressable store helps locally, but without explicit CI caching, every run reinstalls and rebuilds from scratch.
@@ -26,7 +36,7 @@
 **Effort:** Quick fix — add pnpm store caching and consider Turborepo for incremental builds
 **Source:** GitHub Actions caching docs; industry consensus
 
-### 3. I2: Oversized container images (build resources)
+### 3. I2: Oversized container images (build resources) — Medium
 
 **Found in:** `prod.Dockerfile`, self-hosting docs
 **Details:** The build requires **4 CPU cores and 16 GB RAM** — extremely heavy for a web application. The AIO (all-in-one) Docker image is 211 MB compressed, which is reasonable, but the build resource requirement suggests the compilation pipeline is inefficient. Multi-stage build with Alpine is good practice, but the build itself is the bottleneck.
@@ -35,7 +45,7 @@
 **Effort:** Moderate — requires build pipeline optimization, potentially splitting builds
 **Source:** Docker best practices (https://docs.docker.com/build/building/best-practices/)
 
-### 4. A2: No CDN for static assets (self-hosted)
+### 4. A2: No CDN for static assets (self-hosted) — High
 
 **Found in:** Self-hosted deployment configuration
 **Details:** Self-hosted instances serve all static assets from the Caddy container with no CDN layer. No evidence of content-hashing for long-lived cache headers (though Caddy may handle this). The hosted hoppscotch.io likely uses a CDN, but self-hosters get origin-only delivery.
@@ -44,7 +54,7 @@
 **Effort:** Moderate — document CDN setup for self-hosters; configure Caddy cache headers for hashed assets
 **Source:** Industry consensus; Cloudflare documentation
 
-### 5. P3: No data retention policy
+### 5. P3: No data retention policy — Medium
 
 **Found in:** PostgreSQL data layer
 **Details:** No evidence of automated data retention policies, TTL-based cleanup, or scheduled maintenance. API request history, collection data, and team activity persist indefinitely. Magic link tokens have a 24-hour expiry (good), but general data grows unbounded.
@@ -53,7 +63,7 @@
 **Effort:** Moderate — requires policy decisions and scheduled cleanup jobs
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 6. I5: Over-provisioned compute (AIO container)
+### 6. I5: Over-provisioned compute (AIO container) — Medium
 
 **Found in:** `docker-compose.yml`, AIO container architecture
 **Details:** The AIO container bundles the web app, API backend, admin dashboard, and Caddy reverse proxy in a single process. The admin dashboard consumes resources even if rarely accessed. Redis runs as a separate always-on service even when no GraphQL subscriptions are active.
@@ -62,7 +72,7 @@
 **Effort:** Moderate — the split-mode compose already exists; make it the documented default
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 7. A5: N+1 database queries
+### 7. A5: N+1 database queries — High
 
 **Found in:** Prisma ORM usage in NestJS backend
 **Details:** Hoppscotch uses Prisma ORM with PostgreSQL. Prisma does not support automatic eager loading — related records (team members, collections within a team, environments per workspace) require explicit `include` statements. Without careful attention, listing endpoints that return nested data (teams with members, collections with requests) produce N+1 query patterns.

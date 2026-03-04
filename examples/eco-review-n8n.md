@@ -4,11 +4,21 @@
 > **What it is:** Visual workflow automation platform. Node-based editor, 400+ integrations, webhook/polling/cron triggers, self-hostable.
 > **Stack:** Vue 3, Express, BullMQ, Redis, PostgreSQL/SQLite, TypeScript, pnpm + Turbo monorepo
 
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **I3:** Always-on compute with no scale-to-zero — separate trigger layer from execution engine (architectural)
+2. **C1:** Polling triggers at fixed intervals (1,440 API calls/day per trigger) — add exponential backoff, prefer webhooks (moderate)
+3. **A6:** Full execution data stored for every successful run — default to metadata-only on success (quick fix)
+
 ---
 
 ## Top Recommendations
 
-### 1. I3: Always-on compute model
+### 1. I3: Always-on compute model — Medium
 
 **Found in:** Core architecture, `docker-compose.yml`, worker configuration
 **Details:** n8n **must run 24/7** — there is no scale-to-zero capability. Even with zero active workflows, the server stays running to listen for webhooks, fire cron triggers, and poll external services. Production requires 3+ always-on services: n8n main instance + Redis + PostgreSQL. Community attempts to run on Cloud Run (scale-to-zero) break polling and cron triggers because the architecture assumes a persistent process.
@@ -17,7 +27,7 @@
 **Effort:** Architectural — would require fundamental redesign of trigger handling
 **Source:** NRDC Data Center Efficiency Assessment, 2014; AWS Well-Architected Sustainability Pillar
 
-### 2. C1: Polling triggers at fixed intervals
+### 2. C1: Polling triggers at fixed intervals — Medium
 
 **Found in:** Trigger node implementations (Gmail, Google Sheets, Airtable, RSS, IMAP)
 **Details:** Many integrations use polling triggers at fixed intervals. A Gmail poll trigger at 1-minute intervals generates **1,440 API calls/day** even when no new emails arrive. Each poll fires a complete workflow check cycle regardless of whether data changed. Polling is per-workflow — 10 Gmail triggers = 14,400 API calls/day. No exponential backoff when consecutive polls find nothing.
@@ -26,7 +36,7 @@
 **Effort:** Moderate — add backoff logic to polling base class; surface webhook alternatives in UI
 **Source:** GSF Green Software Patterns (https://patterns.greensoftware.foundation/)
 
-### 3. C5: Monolithic integration bundle
+### 3. C5: Monolithic integration bundle — Medium
 
 **Found in:** `packages/nodes-base/`, frontend build configuration
 **Details:** All **400+ integrations** are bundled into every deployment via the `nodes-base` package. No tree-shaking or selective loading — a user who needs 5 nodes ships with 400+. The frontend loads configuration UIs for all nodes, requiring **8 GB build memory**. The `nodes-base` package is the largest in the monorepo.
@@ -35,7 +45,7 @@
 **Effort:** Moderate — extend the existing "community nodes" plugin pattern to core nodes
 **Source:** webpack/Vite documentation; Docker best practices
 
-### 4. I2: Oversized Docker image
+### 4. I2: Oversized Docker image — Medium
 
 **Found in:** `docker/images/n8n/Dockerfile`
 **Details:** The Docker image is **400-500 MB compressed**. It bundles graphicsmagick, full-icu (~30 MB for non-Latin locale support), git, and openssh into every image. Most workflow users don't need image processing or git operations. No "slim" variant is offered.
@@ -44,7 +54,7 @@
 **Effort:** Quick fix — create an `n8n:slim` Dockerfile variant
 **Source:** Docker best practices (https://docs.docker.com/build/building/best-practices/)
 
-### 5. P3: Execution data growth
+### 5. P3: Execution data growth — Medium
 
 **Found in:** Execution data layer, SQLite/PostgreSQL storage
 **Details:** n8n has built-in execution pruning (14-day default, 10K max — this is good). However, community reports indicate PostgreSQL reaching **tens of gigabytes within weeks** under moderate load. Binary data (file attachments) processed in workflows compounds the problem. SQLite mode has no auto-vacuum — pruned data doesn't reclaim disk space.
@@ -53,7 +63,7 @@
 **Effort:** Moderate — add tiered retention and enable auto-vacuum by default
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 6. I1: No green-region guidance for self-hosters
+### 6. I1: No green-region guidance for self-hosters — Medium
 
 **Found in:** Self-hosting documentation
 **Details:** n8n is primarily self-hosted. No documentation recommends low-carbon cloud regions. Users deploying on AWS, GCP, or Azure have no guidance on choosing regions like us-west-2 (Oregon, 79 gCO2/kWh) over us-east-1 (Virginia, 283 gCO2/kWh). For an always-on service, region choice has outsized impact.
@@ -62,7 +72,7 @@
 **Effort:** Quick fix — add region recommendations to self-hosting docs
 **Source:** Google Cloud Region Carbon Data, 2024 (https://cloud.google.com/sustainability/region-carbon)
 
-### 7. A5: N+1 database queries
+### 7. A5: N+1 database queries — High
 
 **Found in:** TypeORM entity relations, workflow/execution loading
 **Details:** n8n uses TypeORM with PostgreSQL. Workflow listings load workflow entities, then separately load associated tags, shared users, and execution statistics for each workflow. Execution history views lazy-load node execution data per-execution rather than batch-loading. The admin panel's user listing loads workspaces and credentials per-user. These are classic N+1 patterns in TypeORM's lazy relation loading.
@@ -71,7 +81,7 @@
 **Effort:** Moderate — add `relations` option to TypeORM `find` calls, or use `QueryBuilder` with `leftJoinAndSelect`
 **Source:** PlanetScale blog (https://planetscale.com/); Azure Well-Architected Framework (https://learn.microsoft.com/en-us/azure/well-architected/)
 
-### 8. A6: Verbose logging in production
+### 8. A6: Verbose logging in production — High
 
 **Found in:** Execution data storage, workflow logging configuration
 **Details:** n8n stores full input/output data for every node execution by default. A 10-node workflow storing JSON payloads at each step generates significant log-equivalent data volume. The `EXECUTIONS_DATA_SAVE_ON_SUCCESS` and `EXECUTIONS_DATA_SAVE_ON_ERROR` flags default to true for all data. Combined with the 14-day retention, this produces substantial storage I/O.

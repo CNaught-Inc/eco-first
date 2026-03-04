@@ -36,11 +36,13 @@ git clone https://github.com/CNaught-Inc/eco-first.git ~/.claude/plugins/eco-fir
 eco-first/
 ├── .claude-plugin/
 │   └── plugin.json
+├── data/
+│   └── carbon-intensity.md   (shared carbon intensity reference table)
 ├── skills/
 │   ├── eco-review/
-│   │   └── SKILL.md          (audit process, 27 patterns, carbon table)
+│   │   └── SKILL.md          (audit process, 27 patterns with severity/heuristics/tools)
 │   └── eco-design/
-│       └── SKILL.md          (planning checklist, carbon table)
+│       └── SKILL.md          (planning checklist)
 ├── commands/
 │   ├── eco-review.md
 │   ├── eco-design.md

@@ -4,11 +4,21 @@
 > **What it is:** Self-hosted monitoring tool. Checks HTTP, TCP, ping, DNS endpoints at configurable intervals and alerts on downtime.
 > **Stack:** Node.js, Express, Vue 3, Socket.IO, SQLite, Vite
 
+> **[Cø] Powered by CNaught** — carbon-aware code intelligence
+
+---
+
+## TL;DR
+
+1. **I2:** Default Docker image 555 MB with Chromium and MariaDB — use slim variant as default (quick fix)
+2. **P3:** No data down-sampling for old heartbeat records — aggregate to hourly after 7 days (moderate)
+3. **C2:** No Brotli compression — add Brotli for 15-25% additional savings (quick fix)
+
 ---
 
 ## Top Recommendations
 
-### 1. I2: Oversized container images
+### 1. I2: Oversized container images — Medium
 
 **Found in:** `docker/debian-base.dockerfile`
 **Details:** Default image uses `node:22-bookworm-slim` base and bundles Chromium (~200MB) and MariaDB server into the standard tag. Total image size: ~555 MB. A `-slim` tag exists without these extras but is not the default.
@@ -17,7 +27,7 @@
 **Effort:** Quick fix — document slim as the recommended default; consider making it the default tag
 **Source:** Docker best practices (https://docs.docker.com/build/building/best-practices/)
 
-### 2. P3: No data retention policy (with caveats)
+### 2. P3: No data retention policy (with caveats) — Medium
 
 **Found in:** `src/components/settings/MonitorHistory.vue`, server-side database code
 **Details:** Uptime Kuma *does* have a configurable `keepDataPeriodDays` setting (default: 180 days), which is better than most. However, at 60-second intervals, each monitor generates ~259,200 heartbeat records per 180 days. There is no automatic down-sampling (e.g., keep per-minute for 7 days, then aggregate to hourly). The SQLite `VACUUM` to reclaim space must be triggered manually and causes 5-10 minutes of monitoring downtime.
@@ -26,7 +36,7 @@
 **Effort:** Moderate — requires data aggregation logic and migration
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 3. C2: Uncompressed text resources (partial)
+### 3. C2: No Brotli compression configured — High
 
 **Found in:** `server/server.js`, `package.json`
 **Details:** The `compression` npm package is installed and used as Express middleware, providing gzip compression for all text responses (HTML, CSS, JS, JSON). However, Brotli compression is not configured. Brotli achieves 15-25% better compression than gzip for text-based responses.
@@ -35,16 +45,16 @@
 **Effort:** Quick fix — add `shrink-ray-current` or configure Vite to emit pre-compressed Brotli assets
 **Source:** Web Almanac 2024, HTTP Archive (https://almanac.httparchive.org/)
 
-### 4. C3: Missing cache-control headers (unconfirmed)
+### 4. C3: Cache headers unverified for hashed assets — High
 
 **Found in:** `server/server.js` (Express static middleware)
-**Details:** Vite produces content-hashed filenames (e.g., `app-abc123.js`), which are ideal for immutable caching. However, the `express.static()` configuration could not be confirmed to set `max-age` or `immutable` headers. If missing, browsers revalidate every request — defeating the purpose of content hashing.
+**Details:** Vite produces content-hashed filenames (e.g., `app-abc123.js`) ideal for immutable caching, but the Express static config could not be verified to set appropriate headers. If `max-age` or `immutable` is not set, browsers revalidate every request — defeating the purpose of content hashing.
 
 **Impact:** Eliminates redundant data transfer for repeat visitors. Static assets are typically 60-80% of page weight.
 **Effort:** Quick fix — add `{ maxAge: '1y', immutable: true }` to `express.static()` options for hashed assets
 **Source:** Web Almanac 2024, HTTP Archive
 
-### 5. I5: Over-provisioned compute (deployment guidance)
+### 5. I5: Over-provisioned compute (deployment guidance) — Medium
 
 **Found in:** `compose.yaml`
 **Details:** The default `compose.yaml` specifies no CPU or memory limits (`mem_limit`, `cpus`). The standard image includes Chromium, which can consume significant memory. No documentation guides users on right-sizing based on monitor count.
@@ -53,7 +63,7 @@
 **Effort:** Quick fix — add sensible `deploy.resources.limits` to compose.yaml and document sizing guidance
 **Source:** AWS Well-Architected Sustainability Pillar
 
-### 6. A3: Monolithic scheduled jobs (monitor batching)
+### 6. A3: Monolithic scheduled jobs (monitor batching) — Medium
 
 **Found in:** `server/model/monitor.js`
 **Details:** Each monitor runs its own independent `setTimeout` loop. With 50 monitors checking the same host at different intervals, there is no coalescing or batching. While `setTimeout` (vs `setInterval`) is the correct choice to prevent overlap, the per-monitor architecture means N monitors = N independent timers.
@@ -77,7 +87,7 @@
 - ✓ Socket.IO for real-time dashboard updates (avoids client polling)
 - ✓ Gzip compression enabled via `compression` middleware
 - ⚠ No Brotli compression — see #3
-- ⚠ Cache-control headers for static assets unconfirmed — see #4
+- ⚠ Cache headers unverified for hashed assets — see #4
 
 ### Product Design
 - ✓ Configurable data retention period (`keepDataPeriodDays`)
